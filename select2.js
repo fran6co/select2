@@ -1,4 +1,4 @@
-﻿/*
+﻿﻿/*
  Copyright 2012 Igor Vaynberg
 
  Version: @@ver@@ Timestamp: @@timestamp@@
@@ -507,7 +507,6 @@
                 } else {
                     this.focusSearch();
                 }
-                killEvent(e);
             }));
 
             // trap all mouse events from leaving the dropdown. sometimes there may be a modal that is listening
@@ -1021,6 +1020,8 @@
                     callback: this.bind(function (data) {
                 var def; // default choice
 
+                this.preprocessResults(data,initial);
+
                 // save context, if any
                 this.context = (data.context===undefined) ? null : data.context;
 
@@ -1048,6 +1049,10 @@
                 if (data.more === true) {
                     results.children().filter(":last").append("<li class='select2-more-results'>" + opts.formatLoadMore(this.resultsPage) + "</li>");
                     window.setTimeout(function() { self.loadMoreIfNeeded(); }, 10);
+                }
+
+                if (this.opts.formatExtra && search.val() !== "") {
+                    results.children().filter(":last").append("<li class='select2-extra'>" + opts.formatExtra(search.val()) + "</li>");
                 }
 
                 this.postprocessResults(data, initial);
@@ -1136,6 +1141,23 @@
 
             // finally, fallback on the calculated width of the element
             return (this.opts.element.width() === 0 ? 'auto' : this.opts.element.outerWidth() + 'px');
+        },
+
+        /**
+         * Get/sets options
+         */
+        options: function(option, value) {
+            if (typeof value !== "undefined") {
+                this.opts[option] = value;
+            }
+
+            return option in this.opts?this.opts[option]:null;
+        },
+
+        preprocessResults: function (data,initial) {
+            if (this.opts.preprocess ){
+                data.results = this.opts.preprocess.call(this.opts.element,data.results);
+            }
         }
     });
 
@@ -1425,7 +1447,7 @@
                 this.updateSelection(val);
             }
             this.setPlaceholder();
-
+            this.triggerChange();
         },
 
         // single
@@ -1946,7 +1968,7 @@
         var args = Array.prototype.slice.call(arguments, 0),
             opts,
             select2,
-            value, multiple, allowedMethods = ["val", "destroy", "open", "close", "focus", "isFocused", "container", "onSortStart", "onSortEnd", "enable", "disable", "positionDropdown", "data"];
+            value, multiple, allowedMethods = ["val", "destroy", "open", "close", "focus", "isFocused", "container", "onSortStart", "onSortEnd", "enable", "disable", "positionDropdown", "data", "options"];
 
         this.each(function () {
             if (args.length === 0 || typeof(args[0]) === "object") {
@@ -2002,6 +2024,8 @@
         formatNoMatches: function () { return "No matches found"; },
         formatInputTooShort: function (input, min) { return "Please enter " + (min - input.length) + " more characters"; },
         formatLoadMore: function (pageNumber) { return "Loading more results..."; },
+        formatExtra: false,
+        preprocess: null,
         minimumResultsForSearch: 0,
         minimumInputLength: 0,
         id: function (e) { return e.id; },
